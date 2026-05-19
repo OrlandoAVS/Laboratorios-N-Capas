@@ -1,0 +1,182 @@
+{
+  "info": {
+    "name": "SheikahRegister - Hyrule Census API",
+    "_postman_id": "sheikah-register-v2",
+    "description": "CRUD completo con paginación dinámica, GeneralResponse wrapper y manejo de errores 404.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080/api/specimen", "type": "string" },
+    { "key": "specimenId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. CREATE - Bokoblin Red",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('201 Created', () => pm.response.to.have.status(201));",
+        "pm.test('GeneralResponse wrapper presente', () => {",
+        "  const j = pm.response.json();",
+        "  pm.expect(j).to.have.all.keys('message','status','uri','timestamp','data');",
+        "  pm.expect(j.status).to.eql(201);",
+        "});",
+        "pm.test('ID guardado', () => {",
+        "  pm.collectionVariables.set('specimenId', pm.response.json().data.id);",
+        "});"
+      ], "type": "text/javascript" }}],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Bokoblin Red\",\n  \"region\": \"Great Plateau\",\n  \"dangerLevel\": 3,\n  \"isFriendly\": false\n}" },
+        "url": { "raw": "{{baseUrl}}/create", "host": ["{{baseUrl}}"], "path": ["create"] }
+      }
+    },
+    {
+      "name": "1b. CREATE - Korok (friendly)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Korok\",\n  \"region\": \"Korok Forest\",\n  \"dangerLevel\": 0,\n  \"isFriendly\": true\n}" },
+        "url": { "raw": "{{baseUrl}}/create", "host": ["{{baseUrl}}"], "path": ["create"] }
+      }
+    },
+    {
+      "name": "1c. CREATE - Lynel Silver (danger 10)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Lynel Silver\",\n  \"region\": \"Akkala Highlands\",\n  \"dangerLevel\": 10,\n  \"isFriendly\": false\n}" },
+        "url": { "raw": "{{baseUrl}}/create", "host": ["{{baseUrl}}"], "path": ["create"] }
+      }
+    },
+    {
+      "name": "1d. CREATE - 400 Validation Error",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('400 Bad Request', () => pm.response.to.have.status(400));",
+        "pm.test('ApiErrorResponse correcto', () => {",
+        "  const j = pm.response.json();",
+        "  pm.expect(j.error).to.eql('Validation Failed');",
+        "  pm.expect(j).to.have.property('timestamp');",
+        "});"
+      ], "type": "text/javascript" }}],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"dangerLevel\": 5\n}" },
+        "url": { "raw": "{{baseUrl}}/create", "host": ["{{baseUrl}}"], "path": ["create"] }
+      }
+    },
+    {
+      "name": "2. GET ALL - Default (page=0, size=10, sortBy=name, asc)",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('200 OK', () => pm.response.to.have.status(200));",
+        "pm.test('PageableResponse dentro de GeneralResponse', () => {",
+        "  const d = pm.response.json().data;",
+        "  pm.expect(d).to.have.all.keys('content','currentPage','pageSize','totalElements','totalPages','isFirst','isLast','hasNext','hasPrevious','sortBy','sortOrder');",
+        "  pm.expect(d.sortBy).to.eql('name');",
+        "  pm.expect(d.sortOrder).to.eql('asc');",
+        "  pm.expect(d.currentPage).to.eql(0);",
+        "});"
+      ], "type": "text/javascript" }}],
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/getAll?page=0&size=10&sortBy=name&sortOrder=asc", "host": ["{{baseUrl}}"], "path": ["getAll"], "query": [
+          {"key":"page","value":"0"}, {"key":"size","value":"10"}, {"key":"sortBy","value":"name"}, {"key":"sortOrder","value":"asc"}
+        ]}
+      }
+    },
+    {
+      "name": "2b. GET ALL - sortBy=dangerLevel DESC, size=2",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/getAll?page=0&size=2&sortBy=dangerLevel&sortOrder=desc", "host": ["{{baseUrl}}"], "path": ["getAll"], "query": [
+          {"key":"page","value":"0"}, {"key":"size","value":"2"}, {"key":"sortBy","value":"dangerLevel"}, {"key":"sortOrder","value":"desc"}
+        ]}
+      }
+    },
+    {
+      "name": "2c. GET ALL - page=1, size=1, sortBy=region",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/getAll?page=1&size=1&sortBy=region&sortOrder=asc", "host": ["{{baseUrl}}"], "path": ["getAll"], "query": [
+          {"key":"page","value":"1"}, {"key":"size","value":"1"}, {"key":"sortBy","value":"region"}, {"key":"sortOrder","value":"asc"}
+        ]}
+      }
+    },
+    {
+      "name": "3. GET BY ID - Found",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('200 OK', () => pm.response.to.have.status(200));",
+        "pm.test('ID coincide', () => { pm.expect(pm.response.json().data.id).to.eql(pm.collectionVariables.get('specimenId')); });"
+      ], "type": "text/javascript" }}],
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/getBy/{{specimenId}}", "host": ["{{baseUrl}}"], "path": ["getBy","{{specimenId}}"] }
+      }
+    },
+    {
+      "name": "3b. GET BY ID - 404 Not Found ★",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('404 Not Found', () => pm.response.to.have.status(404));",
+        "pm.test('ApiErrorResponse limpio', () => {",
+        "  const j = pm.response.json();",
+        "  pm.expect(j.status).to.eql(404);",
+        "  pm.expect(j.error).to.eql('Not Found');",
+        "  pm.expect(j.message).to.include('Specimen not found');",
+        "  pm.expect(j).to.have.property('path');",
+        "  pm.expect(j).to.have.property('timestamp');",
+        "});"
+      ], "type": "text/javascript" }}],
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/getBy/00000000-0000-0000-0000-000000000000", "host": ["{{baseUrl}}"], "path": ["getBy","00000000-0000-0000-0000-000000000000"] }
+      }
+    },
+    {
+      "name": "4. UPDATE - Cambiar a Bokoblin Blue",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('200 OK', () => pm.response.to.have.status(200));",
+        "pm.test('Nombre actualizado', () => { pm.expect(pm.response.json().data.name).to.eql('Bokoblin Blue'); });"
+      ], "type": "text/javascript" }}],
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Bokoblin Blue\",\n  \"region\": \"Eldin Province\",\n  \"dangerLevel\": 5,\n  \"isFriendly\": false\n}" },
+        "url": { "raw": "{{baseUrl}}/update/{{specimenId}}", "host": ["{{baseUrl}}"], "path": ["update","{{specimenId}}"] }
+      }
+    },
+    {
+      "name": "4b. UPDATE - 404 Not Found",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Ghost\",\n  \"region\": \"Nowhere\",\n  \"dangerLevel\": 0,\n  \"isFriendly\": true\n}" },
+        "url": { "raw": "{{baseUrl}}/update/00000000-0000-0000-0000-000000000000", "host": ["{{baseUrl}}"], "path": ["update","00000000-0000-0000-0000-000000000000"] }
+      }
+    },
+    {
+      "name": "5. DELETE - Eliminar espécimen",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('200 OK', () => pm.response.to.have.status(200));",
+        "pm.test('Espécimen eliminado retornado', () => {",
+        "  const j = pm.response.json();",
+        "  pm.expect(j.data).to.have.property('id');",
+        "  pm.expect(j.message).to.include('removed');",
+        "});"
+      ], "type": "text/javascript" }}],
+      "request": {
+        "method": "DELETE",
+        "url": { "raw": "{{baseUrl}}/delete/{{specimenId}}", "host": ["{{baseUrl}}"], "path": ["delete","{{specimenId}}"] }
+      }
+    },
+    {
+      "name": "5b. DELETE - 404 (ya eliminado) ★",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+      ], "type": "text/javascript" }}],
+      "request": {
+        "method": "DELETE",
+        "url": { "raw": "{{baseUrl}}/delete/{{specimenId}}", "host": ["{{baseUrl}}"], "path": ["delete","{{specimenId}}"] }
+      }
+    }
+  ]
+}
